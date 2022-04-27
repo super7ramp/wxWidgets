@@ -955,7 +955,13 @@ void MyApp::DoMIMEDemo(wxCommandEvent& WXUNUSED(event))
                      << "\tCommand to open: " << ( !open ? wxString("no") : open )
                         << '\n'
                      << "\tIcon: " << ( loc.IsOk() ? loc.GetFileName() : wxString("no") )
+                        << '\n'
+                     << "\tAlternate icons: " << ( loc.GetAlternateFileNames().IsEmpty() ? wxString("(none)") : wxString(wxEmptyString) )
                         << '\n';
+
+            const wxArrayString& altIcons = loc.GetAlternateFileNames();
+            for ( wxArrayString::const_iterator it = altIcons.begin(); it != altIcons.end(); it++ )
+                textCtrl << "\t - " << *it << '\n';
 
             delete filetype;
         }

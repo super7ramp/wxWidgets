@@ -67,8 +67,8 @@ protected:
 
     wxArrayString m_aTypes,         // MIME types
                   m_aDescriptions,  // descriptions (just some text)
-                  m_aExtensions,    // space separated list of extensions
-                  m_aIcons;         // Icon filenames
+                  m_aExtensions;    // space separated list of extensions
+    wxVector<wxArrayString>  m_aIcons;  // Icon filenames
 
     // verb=command pairs for this file type
     wxMimeCommandsArray m_aEntries;
@@ -88,18 +88,18 @@ protected:
 
     // functions used to do associations
     virtual int AddToMimeData(const wxString& strType,
-                      const wxString& strIcon,
+                      const wxArrayString& strIcons,
                       wxMimeTypeCommands *entry,
                       const wxArrayString& strExtensions,
                       const wxString& strDesc,
                       bool replaceExisting = true);
     virtual bool DoAssociation(const wxString& strType,
-                       const wxString& strIcon,
+                       const wxArrayString& strIcons,
                        wxMimeTypeCommands *entry,
                        const wxArrayString& strExtensions,
                        const wxString& strDesc);
 
-    virtual wxString GetIconFromMimeType(const wxString& mime);
+    virtual wxArrayString GetIconsFromMimeType(const wxString& mime);
 
     // give it access to m_aXXX variables
     friend class WXDLLIMPEXP_FWD_BASE wxFileTypeImpl;

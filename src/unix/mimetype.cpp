@@ -259,9 +259,9 @@ void wxMimeTypesManagerImpl::LoadXDGGlobs(const wxString& filename)
        wxArrayString exts;
        exts.Add( ext );
 
-       wxString icon = GetIconFromMimeType(mime);
+       wxArrayString icons = GetIconsFromMimeType(mime);
 
-       AddToMimeData(mime, icon, NULL, exts, wxEmptyString, true );
+       AddToMimeData(mime, icons, NULL, exts, wxEmptyString, true );
     }
 }
 
@@ -284,7 +284,7 @@ wxString wxFileTypeImpl::GetExpandedCommand(const wxString & verb, const wxFileT
 
 bool wxFileTypeImpl::GetIcon(wxIconLocation *iconLoc) const
 {
-    wxString sTmp;
+    wxArrayString sTmp;
     size_t i = 0;
     while ( (i < m_index.GetCount() ) && sTmp.empty() )
     {
@@ -297,7 +297,12 @@ bool wxFileTypeImpl::GetIcon(wxIconLocation *iconLoc) const
 
     if ( iconLoc )
     {
-        iconLoc->SetFileName(sTmp);
+        iconLoc->SetFileName(sTmp.front());
+        if ( sTmp.GetCount() > 1 )
+        {
+            for (wxArrayString::const_iterator strIcon = sTmp.begin() + 1; strIcon != sTmp.end(); strIcon++)
+                iconLoc->AddAlternateFileName(*strIcon);
+        }
     }
 
     return true;
@@ -410,7 +415,8 @@ wxFileTypeImpl::SetCommand(const wxString& cmd,
                            bool WXUNUSED(overwriteprompt))
 {
     wxArrayString strExtensions;
-    wxString strDesc, strIcon;
+    wxString strDesc;
+    wxArrayString strIcons;
 
     wxArrayString strTypes;
     GetMimeTypes(strTypes);
@@ -427,7 +433,7 @@ wxFileTypeImpl::SetCommand(const wxString& cmd,
         if ( m_manager->DoAssociation
                         (
                             strTypes[i],
-                            strIcon,
+                            strIcons,
                             entry,
                             strExtensions,
                             strDesc
@@ -466,7 +472,7 @@ bool wxFileTypeImpl::SetDefaultIcon(const wxString& strIcon, int WXUNUSED(index)
         if ( m_manager->DoAssociation
                         (
                             strTypes[i],
-                            strIcon,
+                            wxArrayString(1, &strIcon),
                             entry,
                             strExtensions,
                             strDesc
@@ -656,7 +662,7 @@ void wxMimeTypesManagerImpl::Initialize(int mailcapStyles,
 void wxMimeTypesManagerImpl::ClearData()
 {
     m_aTypes.Clear();
-    m_aIcons.Clear();
+    m_aIcons.clear();
     m_aExtensions.Clear();
     m_aDescriptions.Clear();
 
@@ -705,24 +711,24 @@ wxFileType * wxMimeTypesManagerImpl::Associate(const wxFileTypeInfo& ftInfo)
         }
     }
 
-    if ( !DoAssociation(strType, strIcon, entry, sA_Exts, strDesc) )
+    if ( !DoAssociation(strType, wxArrayString(1, &strIcon), entry, sA_Exts, strDesc) )
         return NULL;
 
     return GetFileTypeFromMimeType(strType);
 }
 
-wxString wxMimeTypesManagerImpl::GetIconFromMimeType(const wxString& WXUNUSED(mime))
+wxArrayString wxMimeTypesManagerImpl::GetIconsFromMimeType(const wxString& WXUNUSED(mime))
 {
-    return wxString();
+    return wxArrayString();
 }
 
 bool wxMimeTypesManagerImpl::DoAssociation(const wxString& strType,
-                                           const wxString& strIcon,
+                                           const wxArrayString& strIcons,
                                            wxMimeTypeCommands *entry,
                                            const wxArrayString& strExtensions,
                                            const wxString& strDesc)
 {
-    int nIndex = AddToMimeData(strType, strIcon, entry, strExtensions, strDesc, true);
+    int nIndex = AddToMimeData(strType, strIcons, entry, strExtensions, strDesc, true);
 
     if ( nIndex == wxNOT_FOUND )
         return false;
@@ -731,7 +737,7 @@ bool wxMimeTypesManagerImpl::DoAssociation(const wxString& strType,
 }
 
 int wxMimeTypesManagerImpl::AddToMimeData(const wxString& strType,
-                                          const wxString& strIcon,
+                                          const wxArrayString& strIcons,
                                           wxMimeTypeCommands *entry,
                                           const wxArrayString& strExtensions,
                                           const wxString& strDesc,
@@ -753,7 +759,7 @@ int wxMimeTypesManagerImpl::AddToMimeData(const wxString& strType,
         {
            // new file type
            m_aTypes.Add(mimeType);
-           m_aIcons.Add(strIcon);
+           m_aIcons.push_back(strIcons);
            m_aEntries.Add(entry ? entry : new wxMimeTypeCommands);
 
            // change nIndex so we can use it below to add the extensions
@@ -766,7 +772,7 @@ int wxMimeTypesManagerImpl::AddToMimeData(const wxString& strType,
         {
            // new file type
            m_aTypes.Insert(mimeType,0);
-           m_aIcons.Insert(strIcon,0);
+           m_aIcons.insert(m_aIcons.begin(), strIcons);
            m_aEntries.Insert(entry ? entry : new wxMimeTypeCommands,0);
 
            // change nIndex so we can use it below to add the extensions
@@ -785,8 +791,12 @@ int wxMimeTypesManagerImpl::AddToMimeData(const wxString& strType,
                 m_aDescriptions[nIndex] = strDesc;
 
             // if new icon change it
-            if ( !strIcon.empty())
-                m_aIcons[nIndex] = strIcon;
+            if ( !strIcons.empty())
+            {
+                m_aIcons.at(nIndex).Clear();
+                for (wxArrayString::const_iterator strIcon = strIcons.begin(); strIcon != strIcons.end(); strIcon++)
+                    m_aIcons.at(nIndex).push_back(*strIcon);
+            }
 
             if ( entry )
             {
@@ -801,8 +811,11 @@ int wxMimeTypesManagerImpl::AddToMimeData(const wxString& strType,
                 m_aDescriptions[nIndex] = strDesc;
 
             // if new icon and no existing icon
-            if ( m_aIcons[nIndex].empty() )
-                m_aIcons[nIndex] = strIcon;
+            if ( m_aIcons.at(nIndex).empty() )
+            {
+                for (wxArrayString::const_iterator strIcon = strIcons.begin(); strIcon != strIcons.end(); strIcon++)
+                    m_aIcons.at(nIndex).push_back(*strIcon);
+            }
 
             // add any new entries...
             if ( entry )
@@ -846,7 +859,7 @@ int wxMimeTypesManagerImpl::AddToMimeData(const wxString& strType,
     // check data integrity
     wxASSERT( m_aTypes.GetCount() == m_aEntries.GetCount() &&
               m_aTypes.GetCount() == m_aExtensions.GetCount() &&
-              m_aTypes.GetCount() == m_aIcons.GetCount() &&
+              m_aTypes.GetCount() == m_aIcons.size() &&
               m_aTypes.GetCount() == m_aDescriptions.GetCount() );
 
     return nIndex;
@@ -996,7 +1009,7 @@ void wxMimeTypesManagerImpl::AddMimeTypeInfo(const wxString& strMimeType,
     // reading mailcap may find image/* , while
     // reading mime.types finds image/gif and no match is made
     // this means all the get functions don't work  fix this
-    const wxString strIcon = GetIconFromMimeType(strMimeType);
+    wxArrayString strIcons = GetIconsFromMimeType(strMimeType);
     wxString sTmp = strExtensions;
 
     wxArrayString sExts;
@@ -1008,7 +1021,7 @@ void wxMimeTypesManagerImpl::AddMimeTypeInfo(const wxString& strMimeType,
         sTmp = sTmp.BeforeLast(wxT(' '));
     }
 
-    AddToMimeData(strMimeType, strIcon, NULL, sExts, strDesc, true);
+    AddToMimeData(strMimeType, strIcons, NULL, sExts, strDesc, true);
 }
 
 size_t wxMimeTypesManagerImpl::EnumAllFileTypes(wxArrayString& mimetypes)
@@ -1059,13 +1072,13 @@ bool wxMimeTypesManagerImpl::Unassociate(wxFileType *ft)
             m_aEntries.RemoveAt(nIndex);
             m_aExtensions.RemoveAt(nIndex);
             m_aDescriptions.RemoveAt(nIndex);
-            m_aIcons.RemoveAt(nIndex);
+            m_aIcons.erase(m_aIcons.begin() + nIndex);
         }
     }
     // check data integrity
     wxASSERT( m_aTypes.GetCount() == m_aEntries.GetCount() &&
             m_aTypes.GetCount() == m_aExtensions.GetCount() &&
-            m_aTypes.GetCount() == m_aIcons.GetCount() &&
+            m_aTypes.GetCount() == m_aIcons.size() &&
             m_aTypes.GetCount() == m_aDescriptions.GetCount() );
 
     return true;

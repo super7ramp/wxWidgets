@@ -203,7 +203,7 @@ public:
     void AddExtension(const wxString& ext) { m_exts.push_back(ext); }
 
         // set the icon info
-    void SetIcon(const wxString& iconFile, int iconIndex = 0)
+    void SetIcon(const wxString& iconFile, int iconIndex = 0, const wxArrayString& alternateIconFiles = {})
     {
         m_iconFile = iconFile;
         m_iconIndex = iconIndex;
@@ -239,6 +239,8 @@ private:
     // icon stuff
     wxString m_iconFile;    // the file containing the icon
     int      m_iconIndex;   // icon index in this file
+    wxArrayString m_alternateIconFiles; // other files containing the icon
+                                        // at different resolutions
 
     wxArrayString m_exts;   // the extensions which are mapped on this filetype
 

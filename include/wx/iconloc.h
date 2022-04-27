@@ -11,7 +11,7 @@
 #ifndef _WX_ICONLOC_H_
 #define _WX_ICONLOC_H_
 
-#include "wx/string.h"
+#include "wx/arrstr.h"
 
 // ----------------------------------------------------------------------------
 // wxIconLocation: describes the location of an icon
@@ -21,8 +21,10 @@ class WXDLLIMPEXP_BASE wxIconLocationBase
 {
 public:
     // ctor takes the name of the file where the icon is
-    explicit wxIconLocationBase(const wxString& filename = wxEmptyString)
-        : m_filename(filename) { }
+    explicit wxIconLocationBase(const wxString &filename = wxEmptyString,
+            const wxArrayString &alternateFilenames = {}) :
+            m_filename(filename), m_alternateFilenames(alternateFilenames)
+    { }
 
     // default copy ctor, assignment operator and dtor are ok
 
@@ -34,8 +36,12 @@ public:
     void SetFileName(const wxString& filename) { m_filename = filename; }
     const wxString& GetFileName() const { return m_filename; }
 
+    void AddAlternateFileName(const wxString& alternateFilename) { m_alternateFilenames.Add(alternateFilename); }
+    const wxArrayString& GetAlternateFileNames() const { return m_alternateFilenames; }
+
 private:
     wxString m_filename;
+    wxArrayString m_alternateFilenames;
 };
 
 // under Windows the same file may contain several icons so we also store the
@@ -70,8 +76,10 @@ wxIconLocation::wxIconLocation(const wxString& file, int num)
 class WXDLLIMPEXP_BASE wxIconLocation : public wxIconLocationBase
 {
 public:
-    explicit wxIconLocation(const wxString& filename = wxEmptyString)
-        : wxIconLocationBase(filename) { }
+    explicit wxIconLocation(const wxString &filename = wxEmptyString,
+            const wxArrayString &alternateFilenames = {}) :
+            wxIconLocationBase(filename, alternateFilenames)
+    { }
 };
 
 #endif // platform
